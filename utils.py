@@ -1,5 +1,22 @@
+import click
 import random
 import itertools
+
+
+def error(text):
+    click.echo(click.style("[!] " + text, fg='red', bold=True))
+
+
+def warning(text):
+    click.echo(click.style("[*] " + text, fg='yellow', bold=True))
+
+
+def success(text):
+    click.echo(click.style("[+] " + text, fg='green', bold=True))
+
+
+def info(text):
+    click.echo("[-] " + text)
 
 
 def random_string(str_size, allowed_chars):
