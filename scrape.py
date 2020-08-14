@@ -106,3 +106,10 @@ async def scrape_subdomains(domain, scrapers):
             nursery.start_soon(scraper.run, results)
 
     return results
+
+
+SCRAPERS = [
+    CrtShScraper,
+    SublisterAPIScraper,
+    # ThreatCrowdScraper,
+]
