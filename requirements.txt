@@ -1,0 +1,14 @@
+anyio==1.4.0
+asks==2.4.8
+async-generator==1.10
+attrs==19.3.0
+click==7.1.2
+dnspython==2.0.0
+h11==0.9.0
+idna==2.10
+outcome==1.0.1
+parse==1.16.0
+sniffio==1.1.0
+sortedcontainers==2.2.2
+tqdm==4.48.1
+trio==0.16.0
