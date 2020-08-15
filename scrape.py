@@ -1,13 +1,12 @@
 import json
-import random
-import re
-from pprint import pprint
-
 import asks
+import click
 import trio
 import parse
+import random
 
 import defaults
+from utils import success, warning
 
 
 class DomainScraper(object):
@@ -54,6 +53,13 @@ class CrtShScraper(DomainScraper):
         found_domains = set(found_domains)
         self.report_results(results, found_domains)
 
+        if results:
+            click.echo(f"Crt.sh - {self.domain}")
+            click.echo("===============")
+            for domain in results:
+                success(f"Found: {domain}")
+            click.echo("\n")
+
         return_ = {'source': 'crt.sh', 'results': sorted(list(found_domains))}
         return return_
 
@@ -73,6 +79,14 @@ class SublisterAPIScraper(DomainScraper):
 
         self.report_results(results, found_domains)
 
+        if results:
+            click.echo(f"api.sublist3r.com - {self.domain}")
+            click.echo("===============")
+            for domain in results:
+                success(f"Found: {domain}")
+
+            click.echo("\n")
+
         return_ = {'source': 'api.sublist3r.com', 'results': found_domains}
         return return_
 
@@ -88,11 +102,24 @@ class ThreatCrowdScraper(DomainScraper):
             headers={'User-Agent': random.choice(defaults.USER_AGENTS)}
         )
         response = await asks.get(API_URL, **params)
-        found_domains = sorted(list(set(json.loads(response.content)['subdomains'])))
+        try:
+            found_domains = sorted(list(set(json.loads(response.content)['subdomains'])))
+        except KeyError:
+            warning(f"ThreatCrowd didn't include any subdomains for {self.domain}")
+            found_domains = []
+
         found_domains = [d.strip() for d in found_domains]
         found_domains = [d for d in found_domains if d.endswith(self.domain)]
 
         self.report_results(results, found_domains)
+
+        if results:
+            click.echo(f"ThreadCrowd.org - {self.domain}")
+            click.echo("===============")
+            for domain in results:
+                success(f"Found: {domain}")
+
+            click.echo("\n")
 
         return_ = {'source': 'threatcrowd.org', 'results': found_domains}
         return return_
@@ -111,5 +138,5 @@ async def scrape_subdomains(domain, scrapers):
 SCRAPERS = [
     CrtShScraper,
     SublisterAPIScraper,
-    # ThreatCrowdScraper,
+    ThreatCrowdScraper,
 ]

@@ -1,3 +1,4 @@
+import random
 import time
 
 import trio
@@ -6,7 +7,7 @@ from tqdm import tqdm
 
 import defaults
 from primitives import fetch_url, query_dns
-from utils import init_source, random_string
+from utils import init_source, random_string, append_subdomain
 
 
 async def bruteforce_urls(base_url, iterator, url_builder, valid_status_codes=None):
@@ -45,19 +46,26 @@ async def bruteforce_urls(base_url, iterator, url_builder, valid_status_codes=No
     return results
 
 
-async def bruteforce_subdomains(domain, iterator, subdomain_builder):
-    limit = trio.CapacityLimiter(10)
+async def bruteforce_subdomains(domain, iterator, nameservers):
+    limit = trio.CapacityLimiter(1000)
 
     start_time = time.time()
-    total = sum([1 for _ in init_source(iterator)])
-    source = init_source(iterator)
+    source = list(init_source(iterator))
+    total = len(source)
 
     async with trio.open_nursery() as nursery:
         results = []
         pbar = tqdm(total=total)
-        for item in source:
-            subdomain = subdomain_builder(domain, item)
-            nursery.start_soon(query_dns, subdomain, results, limit, pbar)
+        for item in list(source)[:1000]:
+            subdomain = append_subdomain(domain, item)
+            nursery.start_soon(
+                query_dns,
+                subdomain,
+                nameservers,
+                results,
+                limit,
+                pbar
+            )
 
     end_time = time.time()
     print(f"Total Time: {end_time - start_time}s")

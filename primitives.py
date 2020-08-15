@@ -1,10 +1,13 @@
 import asks
 import random
+
+import dns
 from dns import asyncresolver
 from dns import resolver
 from dns import name
 
 import defaults
+from utils import error, success
 
 
 async def fetch_url(url, results, limit, valid_status_codes, pbar=None):
@@ -39,16 +42,29 @@ async def fetch_url(url, results, limit, valid_status_codes, pbar=None):
             pbar.update()
 
 
-async def query_dns(domain, results, limit, pbar=None):
+async def query_dns(domain, nameservers, results, limit, pbar=None):
+    random.shuffle(nameservers)
+    response = None
+    # print("-- Domain", domain)
+    # print("Servers: ", nameservers)
+    for ns in nameservers:
+    # ns = random.choice(nameservers)
+    #     print("Before Limit")
+        async with limit:
+            # print("-- NS", ns)
+            try:
+                # asyncresolver.nameservers = ['8.8.8.8']
+                asyncresolver.nameservers = [ns]
+                response = await asyncresolver.resolve(domain, 'A')
+                if response:
+                    success(f"Found: {domain}")
+                    results.append((domain, [ip.to_text() for ip in response]))
+                    break
+            except (resolver.NXDOMAIN, resolver.NoAnswer, name.EmptyLabel, resolver.NoNameservers, dns.exception.Timeout):
+                continue
+                pass
 
-    async with limit:
-        try:
-            response = await asyncresolver.resolve(domain, 'A')
-            if response:
-                print(f"[+] Found: {domain}")
-                results.append((domain, [ip.to_text() for ip in response]))
-            return response
-        except (resolver.NXDOMAIN, resolver.NoAnswer, name.EmptyLabel, resolver.NoNameservers):
-            return None
-        finally:
-            pbar.update()
+    pbar.update()
+    return response
+
+

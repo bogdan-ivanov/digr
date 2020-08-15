@@ -10,7 +10,8 @@ import pipeline.domain
 
 
 COMPLETE_PIPELINE = [
-    pipeline.domain.SubdomainScraperPipeline
+    # pipeline.domain.SubdomainScraperPipeline,
+    pipeline.domain.SubdomainBruteForcePipeline,
 ]
 
 
@@ -24,18 +25,18 @@ def cli():
 def investigate(domain):
     config = {}
     data = {
-        'domains': []
+        'domains': {}
     }
     for d in domain:
-        data['domains'].append({
+        data['domains'][d] = {
             'type': 'domain',
             'value': d
-        })
+        }
 
     for transformer in COMPLETE_PIPELINE:
         t = transformer(data, config=config)
         t.setup()
-        t.run()
+        data = t.run()
 
     pprint(data)
 
