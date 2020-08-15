@@ -7,7 +7,7 @@ from dns import resolver
 from dns import name
 
 import defaults
-from utils import error, success
+from utils import success
 
 
 async def fetch_url(url, results, limit, valid_status_codes, pbar=None):
@@ -45,23 +45,25 @@ async def fetch_url(url, results, limit, valid_status_codes, pbar=None):
 async def query_dns(domain, nameservers, results, limit, pbar=None):
     random.shuffle(nameservers)
     response = None
-    # print("-- Domain", domain)
-    # print("Servers: ", nameservers)
     for ns in nameservers:
-    # ns = random.choice(nameservers)
-    #     print("Before Limit")
         async with limit:
-            # print("-- NS", ns)
             try:
-                # asyncresolver.nameservers = ['8.8.8.8']
                 asyncresolver.nameservers = [ns]
+                asyncresolver.timeout = 3
+                asyncresolver.lifetime = 3
                 response = await asyncresolver.resolve(domain, 'A')
                 if response:
                     success(f"Found: {domain}")
                     results.append((domain, [ip.to_text() for ip in response]))
                     break
-            except (resolver.NXDOMAIN, resolver.NoAnswer, name.EmptyLabel, resolver.NoNameservers, dns.exception.Timeout):
+            except resolver.NXDOMAIN:
+                break
+            except (resolver.NoAnswer, name.EmptyLabel, resolver.NoNameservers) as e:
+                # warning(f"Exception for {domain}: {e}, {type(e)}")
                 continue
+            except dns.exception.Timeout:
+                # warning(f"DNS Timeout for domain={domain}, nameserver={ns}")
+                # await trio.sleep(1)
                 pass
 
     pbar.update()

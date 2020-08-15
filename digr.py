@@ -10,7 +10,7 @@ import pipeline.domain
 
 
 COMPLETE_PIPELINE = [
-    # pipeline.domain.SubdomainScraperPipeline,
+    pipeline.domain.SubdomainScraperPipeline,
     pipeline.domain.SubdomainBruteForcePipeline,
 ]
 
@@ -37,6 +37,8 @@ def investigate(domain):
         t = transformer(data, config=config)
         t.setup()
         data = t.run()
+        pprint(data)
+        input("Press Enter ...")
 
     pprint(data)
 
