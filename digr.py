@@ -10,8 +10,8 @@ import pipeline.domain
 
 
 COMPLETE_PIPELINE = [
-    pipeline.domain.SubdomainScraperPipeline,
-    pipeline.domain.SubdomainBruteForcePipeline,
+    pipeline.domain.SubdomainScraperTransformer,
+    pipeline.domain.SubdomainBruteForceTransformer,
 ]
 
 

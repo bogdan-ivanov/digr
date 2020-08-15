@@ -1,4 +1,4 @@
-class BasePipeline(object):
+class BaseTransformer(object):
     def __init__(self, data, config):
         self.data = data
         self.config = config

@@ -5,10 +5,10 @@ import click
 
 import bruteforce
 import scrape
-from pipeline.base import BasePipeline
+from pipeline.base import BaseTransformer
 
 
-class SubdomainScraperPipeline(BasePipeline):
+class SubdomainScraperTransformer(BaseTransformer):
     def run(self):
         for domain, item in self.data.get('domains').items():
             results = trio.run(scrape.scrape_subdomains, domain, scrape.SCRAPERS)
@@ -28,9 +28,9 @@ class SubdomainScraperPipeline(BasePipeline):
         return self.data
 
 
-class SubdomainBruteForcePipeline(BasePipeline):
+class SubdomainBruteForceTransformer(BaseTransformer):
     def __init__(self, *args, **kwargs):
-        super(SubdomainBruteForcePipeline, self).__init__(*args, **kwargs)
+        super(SubdomainBruteForceTransformer, self).__init__(*args, **kwargs)
         self.wordlist = None
         self.nameservers = None
 
