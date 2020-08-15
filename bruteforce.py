@@ -8,7 +8,7 @@ from primitives import fetch_url, query_dns
 from utils import init_source, random_string, append_subdomain
 
 DNS_BATCH_SZ = 2000
-DNS_LIMIT = 1000
+DNS_LIMIT = 2000
 
 
 async def bruteforce_urls(base_url, iterator, url_builder, valid_status_codes=None):

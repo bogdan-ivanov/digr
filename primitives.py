@@ -2,6 +2,7 @@ import asks
 import random
 
 import dns
+import trio
 from dns import asyncresolver
 from dns import resolver
 from dns import name
@@ -45,13 +46,17 @@ async def fetch_url(url, results, limit, valid_status_codes, pbar=None):
 async def query_dns(domain, nameservers, results, limit, pbar=None):
     random.shuffle(nameservers)
     response = None
-    for ns in nameservers:
+    for ns in nameservers[:5] + ['8.8.8.8']:
         async with limit:
             try:
                 asyncresolver.nameservers = [ns]
-                asyncresolver.timeout = 3
-                asyncresolver.lifetime = 3
-                response = await asyncresolver.resolve(domain, 'A')
+                asyncresolver.timeout = 5
+                asyncresolver.lifetime = 5
+
+                response = None
+                with trio.move_on_after(5):
+                    response = await asyncresolver.resolve(domain, 'A')
+
                 if response:
                     success(f"Found: {domain}")
                     results.append((domain, [ip.to_text() for ip in response]))

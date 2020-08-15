@@ -1,5 +1,5 @@
-from pprint import pprint
-
+import json
+import atexit
 import trio
 import click
 
@@ -33,14 +33,20 @@ def investigate(domain):
             'value': d
         }
 
-    for transformer in COMPLETE_PIPELINE:
-        t = transformer(data, config=config)
-        t.setup()
-        data = t.run()
-        pprint(data)
-        input("Press Enter ...")
+    for T in COMPLETE_PIPELINE:
+        if not T.ESSENTIAL:
+            run_transformer = click.confirm(f"Do you want to run '{T.__name__}'", default=T.RECOMMENDED)
+        else:
+            run_transformer = True
 
-    pprint(data)
+        if run_transformer:
+            t = T(data, config=config)
+            t.setup()
+            data = t.run()
+            print(json.dumps(data, indent=2))
+            input("Press Enter ...")
+
+    print(json.dumps(data, indent=2))
 
 
 @cli.command()
@@ -64,6 +70,11 @@ def domainbust(domain, wordlist):
 def domainscrape(domain):
     results = trio.run(scrape_subdomains, domain, SCRAPERS)
     print(results)
+
+
+@atexit.register
+def cleanup():
+    pass
 
 
 if __name__ == "__main__":

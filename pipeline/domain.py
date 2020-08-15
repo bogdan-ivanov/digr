@@ -9,6 +9,9 @@ from pipeline.base import BaseTransformer
 
 
 class SubdomainScraperTransformer(BaseTransformer):
+    ESSENTIAL = True
+    RECOMMENDED = True
+
     def run(self):
         for domain, item in self.data.get('domains').items():
             results = trio.run(scrape.scrape_subdomains, domain, scrape.SCRAPERS)
@@ -29,6 +32,9 @@ class SubdomainScraperTransformer(BaseTransformer):
 
 
 class SubdomainBruteForceTransformer(BaseTransformer):
+    ESSENTIAL = False
+    RECOMMENDED = False
+
     def __init__(self, *args, **kwargs):
         super(SubdomainBruteForceTransformer, self).__init__(*args, **kwargs)
         self.wordlist = None
@@ -44,12 +50,9 @@ class SubdomainBruteForceTransformer(BaseTransformer):
     def run(self):
         for domain, item in self.data.get('domains').items():
             results = trio.run(bruteforce.bruteforce_subdomains, domain, self.wordlist, self.nameservers)
-            pprint(results)
             if 'subdomains' not in item:
                 item['subdomains'] = {}
             subdomains = item['subdomains']
-            print(subdomains)
-            print(results)
             for result, ip_addresses in results:
                 if result in subdomains:
                     subdomains[result]['sources'].append('brute')
