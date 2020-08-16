@@ -6,6 +6,7 @@ import parse
 import random
 
 import defaults
+import sortedcontainers
 from utils import success, warning
 
 
@@ -13,9 +14,26 @@ class DomainScraper(object):
     SOURCE = None
 
     def __init__(self, domain, **kwargs):
-        self.domain = domain
+        self.domain = domain.lower()
         self.kwargs = kwargs
-        self.subdomains = []
+        self.subdomains = sortedcontainers.SortedList([])
+
+    def __add__(self, domain):
+        if isinstance(domain, list):
+            return [self + d for d in domain]
+
+        domain = domain.lower().strip()
+        if self.domain == domain:
+            return False
+
+        if domain in self.subdomains:
+            return False
+
+        self.subdomains.add(domain)
+        return True
+
+    def __iter__(self):
+        return iter(self.subdomains)
 
     async def run(self, results):
         raise NotImplementedError("Implement run method")
@@ -56,12 +74,12 @@ class CrtShScraper(DomainScraper):
             domains = item['domain'].split('<BR>')
             domains = [d for d in domains if d.endswith(self.domain)
                        and '*' not in d and '@' not in d]
-            self.subdomains.extend(domains)
+            self + domains
 
         self.report_results(results)
         self.print_table()
 
-        return_ = {'source': self.SOURCE, 'results': sorted(list(self.subdomains))}
+        return_ = {'source': self.SOURCE, 'results': list(self)}
         return return_
 
 
@@ -76,12 +94,12 @@ class SublisterAPIScraper(DomainScraper):
             headers={'User-Agent': random.choice(defaults.USER_AGENTS)}
         )
         response = await asks.get(API_URL, **params)
-        self.subdomains = sorted(list(set(json.loads(response.content))))
+        self + json.loads(response.content)
 
         self.report_results(results)
         self.print_table()
 
-        return_ = {'source': 'api.sublist3r.com', 'results': self.subdomains}
+        return_ = {'source': 'api.sublist3r.com', 'results': list(self)}
         return return_
 
 
@@ -97,13 +115,13 @@ class ThreatCrowdScraper(DomainScraper):
         )
         response = await asks.get(API_URL, **params)
         try:
-            found_domains = sorted(list(set(json.loads(response.content)['subdomains'])))
+            found_domains = json.loads(response.content)['subdomains']
         except KeyError:
             warning(f"ThreatCrowd didn't include any subdomains for {self.domain}")
             found_domains = []
 
-        self.subdomains = [d.strip() for d in found_domains]
-        self.subdomains = [d for d in found_domains if d.endswith(self.domain)]
+        found_domains = [d for d in found_domains if d.endswith(self.domain)]
+        self + found_domains
 
         self.report_results(results)
         self.print_table()
@@ -126,9 +144,7 @@ class VirusTotalScraper(DomainScraper):
         while True:
             response = await asks.get(API_URL, **params)
             payload = json.loads(response.content)
-            print(json.dumps(payload, indent=2))
             if 'error' in payload:
-                # print("Error")
                 break
 
             for item in payload['data']:
@@ -139,10 +155,7 @@ class VirusTotalScraper(DomainScraper):
                 if not domain.endswith(self.domain) or domain == self.domain:
                     continue
 
-                self.subdomains.append(domain)
-
-            # print("Found Subdomains: ", found_domains)
-            # input("Press Enter ...")
+                self + domain
 
             if 'links' in payload and 'next' in payload['links']:
                 API_URL = payload['links']['next']
@@ -152,7 +165,7 @@ class VirusTotalScraper(DomainScraper):
         self.report_results(results)
         self.print_table()
 
-        return {'source': self.SOURCE, 'results': sorted(list(set(self.subdomains)))}
+        return {'source': self.SOURCE, 'results': list(self)}
 
 
 async def scrape_subdomains(domain, scrapers):

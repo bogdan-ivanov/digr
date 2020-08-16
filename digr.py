@@ -22,7 +22,8 @@ def cli():
 
 @cli.command()
 @click.option('--domain', prompt='Domain', help='Domain to find subdomains for', multiple=True)
-def investigate(domain):
+@click.option('--output', default=None, help='File to save results to')
+def investigate(domain, output):
     config = {}
     data = {
         'domains': {}
@@ -47,6 +48,11 @@ def investigate(domain):
             input("Press Enter ...")
 
     print(json.dumps(data, indent=2))
+
+    if output:
+        with open(output, 'w') as o_handle:
+            json.dump(data, o_handle, indent=2)
+
 
 
 @cli.command()
