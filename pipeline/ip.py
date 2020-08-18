@@ -1,13 +1,9 @@
-import random
-import ssl
-
-import asks
+import geoip2.database
 import trio
 import click
 
 import defaults
 from pipeline.base import BaseTransformer
-from asks.sessions import Session
 
 from primitives import query_dns
 
@@ -16,6 +12,19 @@ def ip_payload(ip):
     return {
         'value': ip,
         'type': 'ip_address',
+    }
+
+
+def geoip_payload(asn_response, country_response):
+    return {
+        'type': 'geoip_data',
+        'network': str(asn_response.network),
+        'asn': asn_response.autonomous_system_number,
+        'asn_name': asn_response.autonomous_system_organization,
+        'continent_name': country_response.continent.names['en'],
+        'continent_code': country_response.continent.code,
+        'country_name': country_response.country.names['en'],
+        'country_code': country_response.country.iso_code,
     }
 
 
@@ -67,3 +76,39 @@ class IPAddressTransformer(BaseTransformer):
     def run(self):
         trio.run(self.resolve_domains)
         return self.data
+
+
+class GeoIPTransformer(BaseTransformer):
+    ESSENTIAL = False
+    RECOMMENDED = True
+
+    def __init__(self, *args, **kwargs):
+        super(GeoIPTransformer, self).__init__(*args, **kwargs)
+        self.mmdb = None
+        self.country_reader = None
+        self.asn_reader = None
+
+    def setup(self):
+        self.mmdb = click.prompt("MaxMind Database Location", default='data/mmdb')
+        self.country_reader = geoip2.database.Reader(f'{self.mmdb}/GeoLite2-Country.mmdb')
+        self.asn_reader = geoip2.database.Reader(f'{self.mmdb}/GeoLite2-ASN.mmdb')
+
+    def run(self):
+        for domain, domain_data in self.data.get('domains', {}).items():
+            if 'ip_addresses' in domain_data:
+                for ip_addr, ip_data in domain_data['ip_addresses'].items():
+                    country_response = self.country_reader.country(ip_addr)
+                    asn_response = self.asn_reader.asn(ip_addr)
+                    ip_data['geo_ip'] = geoip_payload(asn_response, country_response)
+            for subdomain, subdomain_data in domain_data.get('subdomains', {}).items():
+                if 'ip_addresses' in subdomain_data:
+                    for ip_addr, ip_data in subdomain_data['ip_addresses'].items():
+                        country_response = self.country_reader.country(ip_addr)
+                        asn_response = self.asn_reader.asn(ip_addr)
+                        ip_data['geo_ip'] = geoip_payload(asn_response, country_response)
+
+        return self.data
+
+
+
+
