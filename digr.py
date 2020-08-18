@@ -15,7 +15,7 @@ COMPLETE_PIPELINE = [
     pipeline.domain.SubdomainScraperTransformer,
     # pipeline.domain.SubdomainBruteForceTransformer,
     pipeline.ip.IPAddressTransformer,
-    # pipeline.http.HttpProbeTransformer,
+    pipeline.http.HttpProbeTransformer,
 ]
 
 

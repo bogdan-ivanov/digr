@@ -45,15 +45,19 @@ class HttpProbeTransformer(BaseTransformer):
 
         async with trio.open_nursery() as nursery:
             for domain, domain_data in self.data.get('domains', {}).items():
+                if 'web' not in domain_data:
+                    domain_data['web'] = {}
                 url = f"http://{domain}"
-                nursery.start_soon(self.probe_url, session, url, domain_data)
+                nursery.start_soon(self.probe_url, session, url, domain_data['web'])
                 url = f"https://{domain}"
-                nursery.start_soon(self.probe_url, session, url, domain_data, 'https')
+                nursery.start_soon(self.probe_url, session, url, domain_data['web'], 'https')
                 for subdomain, subdomain_data in domain_data.get('subdomains', {}).items():
+                    if 'web' not in subdomain_data:
+                        subdomain_data['web'] = {}
                     url = f"http://{subdomain}"
-                    nursery.start_soon(self.probe_url, session, url, subdomain_data)
+                    nursery.start_soon(self.probe_url, session, url, subdomain_data['web'])
                     url = f"https://{subdomain}"
-                    nursery.start_soon(self.probe_url, session, url, subdomain_data, 'https')
+                    nursery.start_soon(self.probe_url, session, url, subdomain_data['web'], 'https')
 
     def run(self):
         trio.run(self.check_urls)
