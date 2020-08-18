@@ -7,9 +7,6 @@ import defaults
 from primitives import fetch_url, query_dns
 from utils import init_source, random_string, append_subdomain
 
-DNS_BATCH_SZ = 2000
-DNS_LIMIT = 2000
-
 
 async def bruteforce_urls(base_url, iterator, url_builder, valid_status_codes=None):
     limit = trio.CapacityLimiter(defaults.DEFAULT_CONNECTION_COUNT)
@@ -48,7 +45,7 @@ async def bruteforce_urls(base_url, iterator, url_builder, valid_status_codes=No
 
 
 async def bruteforce_subdomains(domain, iterator, nameservers):
-    limit = trio.CapacityLimiter(DNS_LIMIT)
+    limit = trio.CapacityLimiter(defaults.DNS_LIMIT)
 
     start_time = time.time()
     source = list(init_source(iterator))
@@ -57,7 +54,7 @@ async def bruteforce_subdomains(domain, iterator, nameservers):
     pbar = tqdm(total=len(source))
 
     while True:
-        batch, source = source[:DNS_BATCH_SZ], source[DNS_BATCH_SZ:]
+        batch, source = source[:defaults.DNS_BATCH_SZ], source[defaults.DNS_BATCH_SZ:]
         if not batch:
             break
         async with trio.open_nursery() as nursery:

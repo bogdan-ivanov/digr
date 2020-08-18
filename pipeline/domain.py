@@ -6,6 +6,14 @@ import scrape
 from pipeline.base import BaseTransformer
 
 
+def domain_payload(domain, sources):
+    return {
+        'value': domain,
+        'type': 'domain',
+        'sources': sources
+    }
+
+
 class SubdomainScraperTransformer(BaseTransformer):
     ESSENTIAL = True
     RECOMMENDED = True
@@ -20,11 +28,7 @@ class SubdomainScraperTransformer(BaseTransformer):
                 if result in subdomains:
                     subdomains[result]['sources'].extend(results[results])
                 else:
-                    subdomains[result] = {
-                        'value': result,
-                        'type': 'domain',
-                        'sources': results[result]
-                    }
+                    subdomains[result] = domain_payload(result, results[result])
 
         return self.data
 
@@ -55,10 +59,6 @@ class SubdomainBruteForceTransformer(BaseTransformer):
                 if result in subdomains:
                     subdomains[result]['sources'].append('brute')
                 else:
-                    subdomains[result] = {
-                        'value': result,
-                        'type': 'domain',
-                        'sources': ['brute']
-                    }
+                    subdomains[result] = domain_payload(result, ['brute'])
 
         return self.data

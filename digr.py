@@ -7,11 +7,15 @@ from bruteforce import bruteforce_urls, bruteforce_subdomains
 from scrape import scrape_subdomains, SCRAPERS
 from utils import append_dir, append_subdomain
 import pipeline.domain
+import pipeline.http
+import pipeline.ip
 
 
 COMPLETE_PIPELINE = [
     pipeline.domain.SubdomainScraperTransformer,
-    pipeline.domain.SubdomainBruteForceTransformer,
+    # pipeline.domain.SubdomainBruteForceTransformer,
+    pipeline.ip.IPAddressTransformer,
+    # pipeline.http.HttpProbeTransformer,
 ]
 
 
