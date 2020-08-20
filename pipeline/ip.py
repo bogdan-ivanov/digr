@@ -1,4 +1,5 @@
 import geoip2.database
+import geoip2.errors
 import trio
 import click
 
@@ -18,13 +19,13 @@ def ip_payload(ip):
 def geoip_payload(asn_response, country_response):
     return {
         'type': 'geoip_data',
-        'network': str(asn_response.network),
-        'asn': asn_response.autonomous_system_number,
-        'asn_name': asn_response.autonomous_system_organization,
-        'continent_name': country_response.continent.names['en'],
-        'continent_code': country_response.continent.code,
-        'country_name': country_response.country.names['en'],
-        'country_code': country_response.country.iso_code,
+        'network': str(asn_response.network) if asn_response else None,
+        'asn': asn_response.autonomous_system_number if asn_response else None,
+        'asn_name': asn_response.autonomous_system_organization if asn_response else None,
+        'continent_name': country_response.continent.names['en'] if country_response else None,
+        'continent_code': country_response.continent.code if country_response else None,
+        'country_name': country_response.country.names['en'] if country_response else None,
+        'country_code': country_response.country.iso_code if country_response else None,
     }
 
 
@@ -97,17 +98,26 @@ class GeoIPTransformer(BaseTransformer):
         for domain, domain_data in self.data.get('domains', {}).items():
             if 'ip_addresses' in domain_data:
                 for ip_addr, ip_data in domain_data['ip_addresses'].items():
-                    country_response = self.country_reader.country(ip_addr)
-                    asn_response = self.asn_reader.asn(ip_addr)
+                    asn_response, country_response = self.get_geoip_data(ip_addr)
                     ip_data['geo_ip'] = geoip_payload(asn_response, country_response)
             for subdomain, subdomain_data in domain_data.get('subdomains', {}).items():
                 if 'ip_addresses' in subdomain_data:
                     for ip_addr, ip_data in subdomain_data['ip_addresses'].items():
-                        country_response = self.country_reader.country(ip_addr)
-                        asn_response = self.asn_reader.asn(ip_addr)
+                        asn_response, country_response = self.get_geoip_data(ip_addr)
                         ip_data['geo_ip'] = geoip_payload(asn_response, country_response)
 
         return self.data
+
+    def get_geoip_data(self, ip_addr):
+        try:
+            country_response = self.country_reader.country(ip_addr)
+        except geoip2.errors.AddressNotFoundError:
+            country_response = None
+        try:
+            asn_response = self.asn_reader.asn(ip_addr)
+        except geoip2.errors.AddressNotFoundError:
+            asn_response = None
+        return asn_response, country_response
 
 
 

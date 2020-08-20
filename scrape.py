@@ -1,4 +1,9 @@
+import hashlib
 import json
+import re
+from http.cookies import SimpleCookie
+from bs4 import BeautifulSoup
+
 import asks
 import click
 import trio
@@ -7,6 +12,7 @@ import random
 
 import defaults
 import sortedcontainers
+import urllib.parse as urlparse
 from utils import success, warning
 
 
@@ -23,6 +29,9 @@ class DomainScraper(object):
             return [self + d for d in domain]
 
         domain = domain.lower().strip()
+        if not domain:
+            return False
+
         if self.domain == domain:
             return False
 
@@ -75,6 +84,73 @@ class CrtShScraper(DomainScraper):
             domains = [d for d in domains if d.endswith(self.domain)
                        and '*' not in d and '@' not in d]
             self + domains
+
+        self.report_results(results)
+        self.print_table()
+
+        return_ = {'source': self.SOURCE, 'results': list(self)}
+        return return_
+
+
+class NetcraftScraper(DomainScraper):
+    SOURCE = 'searchdns.netcraft.com'
+
+    @staticmethod
+    def solve_js_challenge(response):
+        if 'set-cookie' not in response.headers:
+            return {}
+
+        cookies = SimpleCookie('\r\n'.join(response.headers['set-cookie']))
+        cookie_dict = {c: cookies[c].value for c in cookies}
+
+        if 'netcraft_js_verification_challenge' in cookie_dict:
+            cookie_dict['netcraft_js_verification_response'] = hashlib.sha1(
+                urlparse.unquote(cookie_dict['netcraft_js_verification_challenge']).encode('utf-8')).hexdigest()
+        return cookie_dict
+
+    def get_next_page_url(self, response):
+        urls = re.findall(
+            r'<a.*?href="(.*?)">Next Page',
+            response.content.decode('utf-8'))
+        if not urls:
+            return None
+        return 'http://searchdns.netcraft.com' + urls[0]
+
+    async def run(self, results):
+        API_URL = f'https://searchdns.netcraft.com/' \
+            f'?restriction=site+ends+with&host={self.domain}&position=limited'
+
+        params = dict(
+            follow_redirects=True,
+            retries=defaults.DEFAULT_RETRIES,
+            headers={'User-Agent': random.choice(defaults.USER_AGENTS)},
+        )
+
+        response = await asks.get('https://searchdns.netcraft.com/', **params)
+        cookies = self.solve_js_challenge(response=response)
+        params['cookies'] = cookies
+
+        while True:
+            response = await asks.get(API_URL, **params)
+
+            soup = BeautifulSoup(response.content.decode('utf-8'), features='html.parser')
+            urls = soup.find_all('a', {'class': 'results-table__host'})
+            for url in urls:
+                if not url['href']:
+                    continue
+                domain = urlparse.urlparse(url['href']).netloc
+                self + domain
+
+            API_URL = self.get_next_page_url(response)
+
+            if not API_URL:
+                break
+
+            cookies = self.solve_js_challenge(response=response)
+            if cookies:
+                params['cookies'] = cookies
+
+            await trio.sleep(1)
 
         self.report_results(results)
         self.print_table()
@@ -183,4 +259,5 @@ SCRAPERS = [
     SublisterAPIScraper,
     ThreatCrowdScraper,
     VirusTotalScraper,
+    NetcraftScraper,
 ]

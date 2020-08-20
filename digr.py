@@ -1,5 +1,8 @@
 import json
+import yaml
 import atexit
+from functools import partial
+
 import trio
 import click
 
@@ -20,6 +23,12 @@ COMPLETE_PIPELINE = [
 ]
 
 
+OUTPUT_FORMATTERS = {
+    'json': partial(json.dump, indent=2),
+    'yaml': yaml.dump,
+}
+
+
 @click.group()
 def cli():
     pass
@@ -28,7 +37,8 @@ def cli():
 @cli.command()
 @click.option('--domain', prompt='Domain', help='Domain to find subdomains for', multiple=True)
 @click.option('--output', default=None, help='File to save results to')
-def investigate(domain, output):
+@click.option('--output-format', default='json', help='File to save results to')
+def investigate(domain, output, output_format):
     config = {}
     data = {
         'domains': {}
@@ -56,7 +66,7 @@ def investigate(domain, output):
 
     if output:
         with open(output, 'w') as o_handle:
-            json.dump(data, o_handle, indent=2)
+            OUTPUT_FORMATTERS[output_format](data, o_handle)
 
 
 
