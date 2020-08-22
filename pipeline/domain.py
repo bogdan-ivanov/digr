@@ -19,7 +19,7 @@ class SubdomainScraperTransformer(BaseTransformer):
     RECOMMENDED = True
 
     def run(self):
-        for domain, item in self.data.get('domains').items():
+        for domain, item in self.iter_domains(only_base=True):
             results = trio.run(scrape.scrape_subdomains, domain, scrape.SCRAPERS)
             if 'subdomains' not in item:
                 item['subdomains'] = {}
@@ -50,7 +50,7 @@ class SubdomainBruteForceTransformer(BaseTransformer):
         self.nameservers = [ns.strip() for ns in open(nameservers, 'r').readlines()]
 
     def run(self):
-        for domain, item in self.data.get('domains').items():
+        for domain, item in self.iter_domains(only_base=True):
             results = trio.run(bruteforce.bruteforce_subdomains, domain, self.wordlist, self.nameservers)
             if 'subdomains' not in item:
                 item['subdomains'] = {}

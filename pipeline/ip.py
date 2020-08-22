@@ -45,7 +45,7 @@ class IPAddressTransformer(BaseTransformer):
         limit = trio.CapacityLimiter(defaults.DNS_LIMIT)
         results = []
         async with trio.open_nursery() as nursery:
-            for domain, domain_data in self.data.get('domains', {}).items():
+            for domain, _ in self.iter_domains():
                 nursery.start_soon(
                     query_dns,
                     domain,
@@ -54,25 +54,12 @@ class IPAddressTransformer(BaseTransformer):
                     limit,
                     None
                 )
-                for subdomain, subdomain_data in domain_data.get('subdomains', {}).items():
-                    nursery.start_soon(
-                        query_dns,
-                        subdomain,
-                        self.nameservers,
-                        results,
-                        limit,
-                        None
-                    )
 
         results = dict(results)
-        for domain, domain_data in self.data.get('domains', {}).items():
+        for domain, domain_data in self.iter_domains():
             domain_data['ip_addresses'] = {
                 ip: ip_payload(ip) for ip in results.get(domain, [])
             }
-            for subdomain, subdomain_data in domain_data.get('subdomains', {}).items():
-                subdomain_data['ip_addresses'] = {
-                    ip: ip_payload(ip) for ip in results.get(subdomain, [])
-                }
 
     def run(self):
         trio.run(self.resolve_domains)
@@ -95,16 +82,11 @@ class GeoIPTransformer(BaseTransformer):
         self.asn_reader = geoip2.database.Reader(f'{self.mmdb}/GeoLite2-ASN.mmdb')
 
     def run(self):
-        for domain, domain_data in self.data.get('domains', {}).items():
+        for domain, domain_data in self.iter_domains():
             if 'ip_addresses' in domain_data:
                 for ip_addr, ip_data in domain_data['ip_addresses'].items():
                     asn_response, country_response = self.get_geoip_data(ip_addr)
                     ip_data['geo_ip'] = geoip_payload(asn_response, country_response)
-            for subdomain, subdomain_data in domain_data.get('subdomains', {}).items():
-                if 'ip_addresses' in subdomain_data:
-                    for ip_addr, ip_data in subdomain_data['ip_addresses'].items():
-                        asn_response, country_response = self.get_geoip_data(ip_addr)
-                        ip_data['geo_ip'] = geoip_payload(asn_response, country_response)
 
         return self.data
 

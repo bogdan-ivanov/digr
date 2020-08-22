@@ -28,9 +28,10 @@ class DomainScraper(object):
         if isinstance(domain, list):
             return [self + d for d in domain]
 
-        domain = domain.lower().strip()
         if not domain:
             return False
+
+        domain = domain.lower().strip()
 
         if self.domain == domain:
             return False
