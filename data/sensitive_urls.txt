@@ -1,0 +1,13 @@
+/admin/	Admin Panel
+/administrator/	Admin Panel
+/backoffice/	Admin Panel
+/wp-admin	WordPress Admin Panel
+/.htaccess	.htacccess File
+/.bash_history	.bash_history File
+/.bashrc	.bashrc File
+/.htpasswd	.htpasswd File
+/.svn	Version Control Folder
+/.git	Git Folder
+/.ssh	SSH Folder
+/cgi	CGI Folder
+/cgi-bin	CGI Folder
