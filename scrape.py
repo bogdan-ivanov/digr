@@ -266,18 +266,22 @@ async def scrape_website_for_domains(address, results):
     else:
         WEBSITE_URL, BASE_DOMAIN = f"http://{address}", address
 
-    response = await asks.get(WEBSITE_URL, **params)
+    try:
+        with trio.move_on_after(5):
+            response = await asks.get(WEBSITE_URL, **params)
 
-    soup = BeautifulSoup(response.content.decode('utf-8'), features='html.parser')
+            soup = BeautifulSoup(response.content.decode('utf-8'), features='html.parser')
 
-    urls = soup.find_all('a')
-    for url in urls:
-        if not url['href']:
-            continue
-        domain = urlparse.urlparse(url['href']).netloc
-        if domain and domain.endswith(BASE_DOMAIN) and domain not in results:
-            success(f"Found {domain} in '{WEBSITE_URL}'")
-            results[domain] = WEBSITE_URL
+            urls = soup.find_all('a')
+            for url in urls:
+                if not url.get('href'):
+                    continue
+                domain = urlparse.urlparse(url['href']).netloc
+                if domain and domain.endswith(BASE_DOMAIN) and domain not in results:
+                    success(f"Found {domain} in '{WEBSITE_URL}'")
+                    results[domain] = WEBSITE_URL
+    except (OSError, asks.errors.RequestTimeout):
+        pass
 
 
 async def scrape_websites(addresses):
