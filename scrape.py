@@ -255,6 +255,39 @@ async def scrape_subdomains(domain, scrapers):
     return results
 
 
+async def scrape_website_for_domains(address, results):
+    params = dict(
+        follow_redirects=True,
+        retries=defaults.DEFAULT_RETRIES,
+        headers={'User-Agent': random.choice(defaults.USER_AGENTS)}
+    )
+    if address.startswith('http'):
+        WEBSITE_URL, BASE_DOMAIN = address, urlparse.urlparse(address).netloc
+    else:
+        WEBSITE_URL, BASE_DOMAIN = f"http://{address}", address
+
+    response = await asks.get(WEBSITE_URL, **params)
+
+    soup = BeautifulSoup(response.content.decode('utf-8'), features='html.parser')
+
+    urls = soup.find_all('a')
+    for url in urls:
+        if not url['href']:
+            continue
+        domain = urlparse.urlparse(url['href']).netloc
+        if domain and domain.endswith(BASE_DOMAIN) and domain not in results:
+            success(f"Found {domain} in '{WEBSITE_URL}'")
+            results[domain] = WEBSITE_URL
+
+
+async def scrape_websites(addresses):
+    results = {}
+    async with trio.open_nursery() as nursery:
+        for addr in addresses:
+            nursery.start_soon(scrape_website_for_domains, addr, results)
+    return results
+
+
 SCRAPERS = [
     CrtShScraper,
     SublisterAPIScraper,

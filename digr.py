@@ -8,7 +8,7 @@ import click
 
 from bruteforce import bruteforce_urls, bruteforce_subdomains
 from scrape import scrape_subdomains, SCRAPERS
-from utils import append_dir, append_subdomain
+from utils import append_dir, append_subdomain, warning
 import pipeline.domain
 import pipeline.http
 import pipeline.ip
@@ -16,7 +16,8 @@ import pipeline.ip
 
 COMPLETE_PIPELINE = [
     pipeline.domain.SubdomainScraperTransformer,
-    # pipeline.domain.SubdomainBruteForceTransformer,
+    pipeline.domain.SubdomainWebsiteScraperTransformer,
+    pipeline.domain.SubdomainBruteForceTransformer,
     pipeline.ip.IPAddressTransformer,
     pipeline.ip.GeoIPTransformer,
     pipeline.http.HttpProbeTransformer,
@@ -51,9 +52,13 @@ def investigate(domain, output, output_format):
 
     for T in COMPLETE_PIPELINE:
         if not T.ESSENTIAL:
-            run_transformer = click.confirm(f"Do you want to run '{T.__name__}'", default=T.RECOMMENDED)
+            run_transformer = click.confirm(f"[{'PASSIVE' if T.PASSIVE else 'ACTIVE'}] "
+                                            f"Do you want to run '{T.__name__}'", default=T.RECOMMENDED)
         else:
             run_transformer = True
+
+        if not run_transformer:
+            warning(f"Skipping {T.__name__} ...")
 
         if run_transformer:
             t = T(data, config=config)
@@ -67,7 +72,6 @@ def investigate(domain, output, output_format):
     if output:
         with open(output, 'w') as o_handle:
             OUTPUT_FORMATTERS[output_format](data, o_handle)
-
 
 
 @cli.command()

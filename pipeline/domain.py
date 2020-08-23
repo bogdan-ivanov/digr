@@ -17,6 +17,7 @@ def domain_payload(domain, sources):
 class SubdomainScraperTransformer(BaseTransformer):
     ESSENTIAL = True
     RECOMMENDED = True
+    PASSIVE = True
 
     def run(self):
         for domain, item in self.iter_domains(only_base=True):
@@ -36,6 +37,7 @@ class SubdomainScraperTransformer(BaseTransformer):
 class SubdomainBruteForceTransformer(BaseTransformer):
     ESSENTIAL = False
     RECOMMENDED = False
+    PASSIVE = True
 
     def __init__(self, *args, **kwargs):
         super(SubdomainBruteForceTransformer, self).__init__(*args, **kwargs)
@@ -60,5 +62,29 @@ class SubdomainBruteForceTransformer(BaseTransformer):
                     subdomains[result]['sources'].append('brute')
                 else:
                     subdomains[result] = domain_payload(result, ['brute'])
+
+        return self.data
+
+
+class SubdomainWebsiteScraperTransformer(BaseTransformer):
+    ESSENTIAL = False
+    RECOMMENDED = True
+    PASSIVE = False
+
+    def run(self):
+        results = trio.run(scrape.scrape_websites, [d for d, _ in self.iter_domains()])
+
+        for domain, item in self.iter_domains(only_base=True):
+            if 'subdomains' not in item:
+                item['subdomains'] = {}
+
+            subdomains = item['subdomains']
+            for result, _ in results.items():
+                if not result.endswith('.' + domain):
+                    continue
+                if result in subdomains:
+                    subdomains[result]['sources'].extend(['website'])
+                else:
+                    subdomains[result] = domain_payload(result, ['website'])
 
         return self.data

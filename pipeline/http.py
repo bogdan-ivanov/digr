@@ -1,17 +1,16 @@
 import random
-import ssl
 
 import asks
 import trio
 
 import defaults
 from pipeline.base import BaseTransformer
-from asks.sessions import Session
 
 
 class HttpProbeTransformer(BaseTransformer):
     ESSENTIAL = False
     RECOMMENDED = True
+    PASSIVE = False
 
     async def probe_url(self, session, url, domain_data, key='http'):
         params = dict(
@@ -38,10 +37,7 @@ class HttpProbeTransformer(BaseTransformer):
         return results['live']
 
     async def check_urls(self):
-        ssl_context = ssl.SSLContext()
-        ssl_context.verify_mode = ssl.CERT_NONE
-        ssl_context.check_hostname = False
-        session = Session(connections=50, ssl_context=ssl_context)
+        session = self.get_http_session()
 
         async with trio.open_nursery() as nursery:
             for domain, domain_data in self.iter_domains():

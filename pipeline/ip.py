@@ -32,6 +32,7 @@ def geoip_payload(asn_response, country_response):
 class IPAddressTransformer(BaseTransformer):
     ESSENTIAL = False
     RECOMMENDED = True
+    PASSIVE = True
 
     def __init__(self, *args, **kwargs):
         super(IPAddressTransformer, self).__init__(*args, **kwargs)
@@ -69,6 +70,7 @@ class IPAddressTransformer(BaseTransformer):
 class GeoIPTransformer(BaseTransformer):
     ESSENTIAL = False
     RECOMMENDED = True
+    PASSIVE = True
 
     def __init__(self, *args, **kwargs):
         super(GeoIPTransformer, self).__init__(*args, **kwargs)
