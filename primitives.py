@@ -33,6 +33,26 @@ async def fetch_url(url, results, limit, valid_status_codes, pbar=None):
             pbar.update()
 
 
+async def check_port(ip_addr, port, results, limit):
+    return_value = 'closed'
+    async with limit:
+        with trio.move_on_after(defaults.PORT_SCAN_TIMEOUT):
+            conn = trio.socket.socket(trio.socket.AF_INET, trio.socket.SOCK_STREAM)
+            try:
+                await conn.connect((ip_addr, port))
+                return_value = 'open'
+            except Exception as e:
+                print("check_port:", e)
+            finally:
+                conn.close()
+
+    if results is not None:
+        if ip_addr not in results:
+            results[ip_addr] = {}
+        results[ip_addr][port] = return_value
+    return return_value
+
+
 async def query_dns(domain, nameservers, results, limit, pbar=None):
     random.shuffle(nameservers)
     response = None

@@ -19,11 +19,15 @@ async def bruteforce_urls(base_url, iterator, url_builder, valid_status_codes=No
     total = sum([1 for _ in init_source(iterator)])
     source = init_source(iterator)
 
+    if isinstance(base_url, str):
+        base_url = [base_url]
+
     async with trio.open_nursery() as nursery:
         results = []
-        for item in [random_string(30, defaults.ALLOWED_CHARS) for _ in range(30)]:
-            url = url_builder(base_url, item)
-            nursery.start_soon(fetch_url, url, results, limit, valid_status_codes)
+        for _url in base_url:
+            for item in [random_string(30, defaults.ALLOWED_CHARS) for _ in range(30)]:
+                url = url_builder(_url, item)
+                nursery.start_soon(fetch_url, url, results, limit, valid_status_codes)
 
     if results:
         wildcard_status_codes = set([item[1] for item in results])
@@ -34,9 +38,10 @@ async def bruteforce_urls(base_url, iterator, url_builder, valid_status_codes=No
     async with trio.open_nursery() as nursery:
         results = []
         pbar = tqdm(total=total)
-        for item in source:
-            url = url_builder(base_url, item)
-            nursery.start_soon(fetch_url, url, results, limit, valid_status_codes, pbar)
+        for _url in base_url:
+            for item in source:
+                url = url_builder(_url, item)
+                nursery.start_soon(fetch_url, url, results, limit, valid_status_codes, pbar)
 
     end_time = time.time()
     print(f"Total Time: {end_time - start_time}s")

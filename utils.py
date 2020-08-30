@@ -23,11 +23,16 @@ def random_string(str_size, allowed_chars):
     return ''.join(random.choice(allowed_chars) for _ in range(str_size))
 
 
-def append_dir(url, dir):
+def append_path(url, path):
+    url = url.strip()
+    path = path.strip()
+
     if url[-1] == "/":
-        url = f"{url}{dir}"
-    else:
-        url = f"{url}/{dir}"
+        url = url[:-1]
+    if path[0] == "/":
+        path = path[1:]
+
+    url = f"{url}/{path}"
     return url.strip()
 
 

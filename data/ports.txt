@@ -1,0 +1,15 @@
+21	ftp
+22	ssh
+23	telnet
+25	smtp
+80	http
+88	kerberos
+110	pop3
+443	https
+1433	mssql
+3306	mysql
+5432	postgresql
+5984	couchdb
+6379	redis
+8080	http-alt
+27017	mongod

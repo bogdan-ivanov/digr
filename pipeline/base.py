@@ -27,6 +27,16 @@ class BaseTransformer(object):
                 for subdomain, subdomain_data in domain_data.get('subdomains', {}).items():
                     yield subdomain, subdomain_data
 
+    def iter_ip_addresses(self, only_base=False):
+        for _, domain_data in self.data.get('domains', {}).items():
+            for ip, ip_data in domain_data.get('ip_addresses', {}).items():
+                yield ip, ip_data
+
+            if not only_base:
+                for _, subdomain_data in domain_data.get('subdomains', {}).items():
+                    for ip, ip_data in subdomain_data.get('ip_addresses', {}).items():
+                        yield ip, ip_data
+
     @property
     def name(self):
         return self.__class__.__name__
